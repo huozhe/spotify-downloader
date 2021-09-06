@@ -1,6 +1,7 @@
 # ===============
 # === Imports ===
 # ===============
+from urllib import parse
 
 # ! Just for static typing
 from ytmusicapi import YTMusic
@@ -16,6 +17,19 @@ from spotdl.providers.provider_utils import (
 
 # ! YTMusic api client
 ytm_client = YTMusic()
+
+
+def get_metadata_for_playlist(playlist_url: str) -> list[dict]:
+    # example ytm playlist URL:
+    # https://music.youtube.com/playlist?list=OLAK5uy_kU2X1v4kAIOXfF2sO7rqT05N4NtaVuGZQ
+    try:
+        playlist_id = parse.parse_qs(parse.urlparse(playlist_url).query)["list"][0]
+    except Exception as e:
+        print(f"Can not get metadata for YoutubeMusic playlist {playlist_url}.")
+        print(f"Received exception {e}")
+        return []
+    resp = ytm_client.get_watch_playlist(playlistId=playlist_id)
+    return resp['tracks']
 
 
 def search_and_get_best_match(

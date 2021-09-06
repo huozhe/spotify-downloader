@@ -25,6 +25,13 @@ To download youtube video with metadata from spotify run:
     ex. spotdl "https://www.youtube.com/watch?v=EO7XnC1YpVo|https://open.spotify.com/track/4fzsfWzRhPawzqhX8Qt9F3"
     Note: urls that you pass have to be quoted properly ex. "YouTubeURL|SpotifyUrl"
 
+To download youtube playlist with metadata from spotify run:
+    spotdl "YouTubePlaylistURL|SpotifyPlaylistURL"
+    ex.
+    spotdl "https://music.youtube.com/playlist?list=OLAK5uy_kU2X1v4kAIOXfF2sO7rqT05N4NtaVuGZQ|https://open.spotify.com/album/4HJ4hYpUfQ6NwjHNuf7tE2"
+    Note: urls that you pass have to be quoted properly ex.
+    "YouTubePlaylistURL|SpotifyPlaylistUrl"
+
 To change output format run:
     spotdl [songUrl] --output-format mp3/m4a/flac/opus/ogg/wav
     ex. spotdl [songUrl] --output-format opus

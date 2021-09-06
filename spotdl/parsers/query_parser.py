@@ -1,8 +1,13 @@
-from typing import List
+from collections import defaultdict
 from pathlib import Path
+from typing import List
 
 from spotdl.search import SongObject, song_gatherer
-from spotdl.providers import provider_utils, metadata_provider
+from spotdl.providers import (
+    provider_utils,
+    metadata_provider,
+    ytm_provider,
+)
 
 
 def parse_query(
@@ -60,6 +65,24 @@ def parse_request(
             song_list = [
                 song
                 for song in [get_youtube_meta_track(urls[0], urls[1], output_format)]
+                if song is not None
+            ]
+    elif (
+        "music.youtube.com/playlist?list=" in request
+        and "open.spotify.com" in request
+        and "|" in request
+    ):
+        urls = request.split("|")
+
+        if len(urls) <= 1 or "youtube" not in urls[0] or "spotify" not in urls[1]:
+            print("Incorrect format used, please use YouTubeMusicURL|SpotifyURL")
+        else:
+            print("Fetching YouTube Music playlist with spotify metadata")
+            song_list = [
+                song
+                for song in get_youtube_meta_playlist(
+                    urls[0], urls[1], output_format, generate_m3u, threads
+                )
                 if song is not None
             ]
     elif "open.spotify.com" in request and "track" in request:
@@ -139,3 +162,54 @@ def get_youtube_meta_track(
     return SongObject(
         raw_track_meta, raw_album_meta, raw_artist_meta, youtube_url, lyrics
     )
+
+
+def get_youtube_meta_playlist(
+    youtube_url: str,
+    spotify_url: str,
+    output_format: str = None,
+    generate_m3u: bool = False,
+    threads: int = 1,
+):
+    # get metadata for all the songs in the album from spotify
+    print(f"Gathering Spotify Metadata for: {spotify_url}")
+    song_list = song_gatherer.from_album(
+        spotify_url, output_format, False, generate_m3u, threads
+    )
+
+    def compute_diff(a, b):
+        count_a = defaultdict(int)
+        for c in "".join(a.split()):
+            count_a[c] += 1
+        count_b = defaultdict(int)
+        for c in "".join(b.split()):
+            count_b[c] += 1
+        diff = sum(abs(count_a[k] - count_b[k]) for k in set(count_a) | set(count_b))
+        return diff
+
+    # get sound url from Youtube Music
+    ytm_metadata = ytm_provider.get_metadata_for_playlist(youtube_url)
+    ytm_titles = [song["title"] for song in ytm_metadata]
+    if not ytm_titles:
+        print(f"Can not find download links from Youtube Music for {youtube_url}")
+        return []
+
+    # find the best match
+    for song in song_list:
+        t = song.song_name
+        diff_scores = [
+            (compute_diff(t, yt), idx, yt) for (idx, yt) in enumerate(ytm_titles)
+        ]
+        best_match = min(diff_scores)
+        diff_score, best_idx, yt_title = best_match
+        if diff_score:  # mismatch
+            print(
+                "Best match between Spotify and YTM are not identical. "
+                "Spotify: {}, YTM: {}, diff_score: {}".format(t, yt_title, diff_score)
+            )
+        song._youtube_link = "https://www.youtube.com/watch?v={}".format(
+            ytm_metadata[best_idx]["videoId"]
+        )
+        print("DEBUG: {} : {} : {}".format(t, best_match, song._youtube_link))
+
+    return song_list
