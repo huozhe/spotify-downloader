@@ -174,7 +174,7 @@ def get_youtube_meta_playlist(
     # get metadata for all the songs in the album from spotify
     print(f"Gathering Spotify Metadata for: {spotify_url}")
     song_list = song_gatherer.from_album(
-        spotify_url, output_format, False, generate_m3u, threads
+        spotify_url, output_format, False, generate_m3u, threads, skip_youtube=True
     )
 
     def compute_diff(a, b):

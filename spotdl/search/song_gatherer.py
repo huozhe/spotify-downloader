@@ -14,7 +14,10 @@ from spotdl.providers.provider_utils import _get_converted_file_path
 
 
 def from_spotify_url(
-    spotify_url: str, output_format: str = None, use_youtube: bool = False
+    spotify_url: str,
+    output_format: str = None,
+    use_youtube: bool = False,
+    skip_youtube: bool = False,
 ) -> SongObject:
     """
     Creates song object using spotfy url
@@ -64,24 +67,27 @@ def from_spotify_url(
         raise OSError(f"{converted_file_name} already downloaded")
 
     # Get the song's downloadable audio link
-    if use_youtube is True:
-        print(f'Searching YouTube for "{display_name}"', end="\r")
-        youtube_link = yt_provider.search_and_get_best_match(
-            song_name, contributing_artists, duration, isrc
-        )
+    if skip_youtube:
+        youtube_link = ""
     else:
-        print(f'Searching YouTube Music for "{display_name}"', end="\r")
-        youtube_link = ytm_provider.search_and_get_best_match(
-            song_name, contributing_artists, album_name, duration, isrc
-        )
+        if use_youtube is True:
+            print(f'Searching YouTube for "{display_name}"', end="\r")
+            youtube_link = yt_provider.search_and_get_best_match(
+                song_name, contributing_artists, duration, isrc
+            )
+        else:
+            print(f'Searching YouTube Music for "{display_name}"', end="\r")
+            youtube_link = ytm_provider.search_and_get_best_match(
+                song_name, contributing_artists, album_name, duration, isrc
+            )
 
-    # Check if we found youtube url
-    if youtube_link is None:
-        print("Could not match any of the results on YouTube. Skipping")
-        raise LookupError("Could not match any of the results on YouTube for")
-    else:
-        print(" " * (len(display_name) + 25), end="\r")
-        print(f'Found YouTube URL for "{display_name}" : {youtube_link}')
+        # Check if we found youtube url
+        if youtube_link is None:
+            print("Could not match any of the results on YouTube. Skipping")
+            raise LookupError("Could not match any of the results on YouTube for")
+        else:
+            print(" " * (len(display_name) + 25), end="\r")
+            print(f'Found YouTube URL for "{display_name}" : {youtube_link}')
 
     # (try to) Get lyrics from Genius
     lyrics = provider_utils._get_song_lyrics(song_name, contributing_artists)
@@ -127,6 +133,7 @@ def from_album(
     use_youtube: bool = False,
     generate_m3u: bool = False,
     threads: int = 1,
+    skip_youtube: bool = False,
 ) -> List[SongObject]:
     """
     Create and return list containing SongObject for every song in the album
@@ -169,6 +176,7 @@ def from_album(
                 "https://open.spotify.com/track/" + track["id"],
                 output_format,
                 use_youtube,
+                skip_youtube,
             )
 
             if generate_m3u:
